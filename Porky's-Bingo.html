@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Porky's Bingo Wheel</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f0c29;
+      color: white;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .main-container {
+      display: flex;
+      width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+      gap: 40px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .wheel-section {
+      text-align: center;
+      flex: 1;
+      max-width: 650px;
+    }
+
+    .history-section {
+      width: 260px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(26, 26, 46, 0.7);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      border: 1px solid gold;
+    }
+
+    .history-title {
+      font-size: 20px;
+      color: gold;
+      margin-bottom: 12px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    #call-log {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 500px;
+      padding: 8px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .log-entry {
+      padding: 6px 10px;
+      margin: 4px 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      font-weight: bold;
+    }
+
+    .clear-btn, .fullscreen-btn {
+      margin-top: 12px;
+      padding: 8px;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    .clear-btn {
+      background: #ff416c;
+    }
+    .clear-btn:hover { background: #ff1a4d; }
+
+    .fullscreen-btn {
+      background: #4a4a9e;
+    }
+    .fullscreen-btn:hover { background: #3a3a7e; }
+
+    .wheel-container {
+      position: relative;
+      width: 600px;
+      height: 600px;
+      margin: 0 auto 20px;
+    }
+
+    #wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(255, 105, 180, 0.4), inset 0 0 20px rgba(0,0,0,0.7);
+      background: #1a1a2e;
+      border: 4px solid gold;
+      /* Transition will be set dynamically in JS */
+    }
+
+    .ball {
+      position: absolute;
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 15px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+      user-select: none;
+      left: 50%;
+      top: 50%;
+      transform-origin: 0 0;
+    }
+
+    #center-ball {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 48px;
+      box-shadow: 0 0 30px rgba(255,255,255,0.9);
+      z-index: 5;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .pointer {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 40px;
+      color: gold;
+      text-shadow: 0 0 10px rgba(255,215,0,0.9);
+      z-index: 10;
+    }
+
+    button#spinBtn {
+      padding: 12px 32px;
+      font-size: 20px;
+      background: linear-gradient(to bottom, #4a90e2, #0057b8);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 15px rgba(0, 90, 180, 0.4);
+    }
+
+    button#spinBtn:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 90, 180, 0.6);
+    }
+
+    button#spinBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .B { color: #0057b8; }
+    .I { color: #009e60; }
+    .N { color: #d4af37; }
+    .G { color: #ff6b00; }
+    .O { color: #d60270; }
+
+    /* Fullscreen override */
+    body:fullscreen,
+    body:-webkit-full-screen,
+    body:-moz-full-screen,
+    body:-ms-fullscreen {
+      background: #000;
+    }
+
+    /* Mobile */
+    @media (max-width: 950px) {
+      .main-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+      .history-section {
+        width: 90%;
+        max-width: 600px;
+        order: 2;
+      }
+      .wheel-section {
+        order: 1;
+      }
+      .wheel-container {
+        width: 500px;
+        height: 500px;
+      }
+      #center-ball {
+        width: 150px;
+        height: 150px;
+        font-size: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <div class="wheel-section">
+      <h2 style="color: gold; margin-bottom: 10px;">Porky's Bingo Palace</h2>
+      <div class="wheel-container">
+        <div id="wheel"></div>
+        <div id="center-ball"></div>
+        <div class="pointer">▼</div>
+      </div>
+      <button id="spinBtn" onclick="spin()">Spin</button>
+      <br><br>
+      <button class="fullscreen-btn" onclick="toggleFullscreen()">🕗 Fullscreen</button>
+    </div>
+
+    <div class="history-section">
+      <div class="history-title">CallCheck Log</div>
+      <div id="call-log"></div>
+      <button class="clear-btn" onclick="clearLog()">Clear Log</button>
+    </div>
+  </div>
+
+  <script>
+    const allBalls = [];
+    const letters = ['B', 'I', 'N', 'G', 'O'];
+    for (let i = 0; i < 75; i++) {
+      const letter = letters[Math.floor(i / 15)];
+      const number = i + 1;
+      allBalls.push({ label: `${letter}${number}`, letter });
+    }
+
+    const wheel = document.getElementById('wheel');
+    const centerBall = document.getElementById('center-ball');
+    const callLog = document.getElementById('call-log');
+    const total = allBalls.length;
+    const radius = 240;
+
+    // Create visual balls
+    allBalls.forEach((ball, i) => {
+      const angle = (i / total) * Math.PI * 2 - Math.PI / 2;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+
+      const ballEl = document.createElement('div');
+      ballEl.className = `ball ${ball.letter}`;
+      ballEl.textContent = ball.label;
+      ballEl.style.left = `calc(50% + ${x}px - 27.5px)`;
+      ballEl.style.top = `calc(50% + ${y}px - 27.5px)`;
+      wheel.appendChild(ballEl);
+    });
+
+    let spinning = false;
+    let remainingBalls = [...allBalls];
+    let history = [];
+
+    function spin() {
+      if (spinning || remainingBalls.length === 0) return;
+
+      spinning = true;
+      const spinBtn = document.getElementById('spinBtn');
+      spinBtn.disabled = true;
+      centerBall.style.opacity = '0';
+
+      const randomIndex = Math.floor(Math.random() * remainingBalls.length);
+      const winner = remainingBalls[randomIndex];
+      remainingBalls.splice(randomIndex, 1);
+
+      const originalIndex = allBalls.findIndex(b => b.label === winner.label);
+
+      // ⬆️ MORE SPINS: 8 to 12 full rotations
+      const fullSpins = 8 + Math.floor(Math.random() * 5); // 8–12 spins
+      const spinDuration = 2 + Math.random() * 2; // 2–4 seconds
+
+      const winnerAngle = (originalIndex / total) * 360;
+      const finalRotation = fullSpins * 360 + (90 - winnerAngle);
+
+      // Apply dynamic transition
+      wheel.style.transition = `transform ${spinDuration}s cubic-bezier(0.1, 0.9, 0.2, 1.0)`;
+      wheel.style.transform = `rotate(${finalRotation}deg)`;
+
+      // Show center ball quickly
+      setTimeout(() => {
+        centerBall.className = `ball ${winner.letter}`;
+        centerBall.textContent = winner.label;
+        centerBall.style.opacity = '1';
+      }, 100);
+
+      // Update log slightly after
+      setTimeout(() => {
+        history.push(winner);
+        updateLog();
+      }, 300);
+
+      // Re-enable
+      setTimeout(() => {
+        spinning = false;
+        spinBtn.disabled = remainingBalls.length === 0;
+        if (remainingBalls.length === 0) {
+          alert("🎉 All numbers have been called! Bingo complete!");
+        }
+      }, spinDuration * 1000 + 100);
+    }
+
+    function updateLog() {
+      callLog.innerHTML = '';
+      history.slice().reverse().forEach(item => {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${item.letter}`;
+        entry.textContent = item.label;
+        callLog.appendChild(entry);
+      });
+      callLog.scrollTop = 0;
+    }
+
+    function clearLog() {
+      if (confirm("Clear the call log and restart the game?")) {
+        remainingBalls = [...allBalls];
+        history = [];
+        updateLog();
+        document.getElementById('spinBtn').disabled = false;
+        centerBall.style.opacity = '0';
+      }
+    }
+
+    // 🔑 Spacebar support
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !spinning && remainingBalls.length > 0) {
+        e.preventDefault();
+        spin();
+      }
+    });
+
+    // 🖥️ Fullscreen toggle
+    function toggleFullscreen() {
+      if (!document.fullscreenElement &&
+          !document.webkitFullscreenElement &&
+          !document.mozFullScreenElement &&
+          !document.msFullscreenElement) {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        } else if (elem.mozRequestFullScreen) {
+          elem.mozRequestFullScreen();
+        } else if (elem.msRequestFullscreen) {
+          elem.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+    }
+
+    // 🚪 Exit fullscreen on Esc (already native in most browsers, but we ensure UI updates)
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    function handleFullscreenChange() {
+      // Optional: you could update button text here if desired
+    }
+  </script>
+</body>
+</html>
